@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#ff8a3c">
+<title>Gusapila</title>
+<style>
+  :root { --azul:#2a1fd6; --tinta:#14102e; --crema:#fff8ea; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; height:100%; overflow:hidden; overscroll-behavior:none;
+    font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui, sans-serif; color:var(--tinta);
+    -webkit-user-select:none; user-select:none;
+    background: radial-gradient(circle at 50% 38%, #ffc531 0%, #ff9a3c 45%, #ff5a6a 100%); }
+  [hidden] { display:none !important; }
+  #app { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; padding:8px 8px 10px; gap:6px; }
+  header { width:100%; max-width:560px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex:none; }
+  .titulo { font-size:26px; font-weight:900; color:var(--azul); letter-spacing:.5px; line-height:1;
+    text-shadow:-2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 2px 2px 0 #fff, 0 3px 0 #fff, 0 -3px 0 #fff, 3px 0 0 #fff, -3px 0 0 #fff; }
+  .par { display:flex; gap:6px; width:90px; justify-content:flex-end; } .par.izq { justify-content:flex-start; }
+  .red { width:42px; height:42px; border-radius:50%; border:3px solid var(--tinta); background:var(--crema); font-size:17px; cursor:pointer; padding:0; }
+  #zona { flex:1 1 auto; min-height:0; width:100%; display:flex; align-items:center; justify-content:center; }
+  #c { display:block; touch-action:none; border-radius:10px; }
+  #mandos { flex:none; display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; width:100%; max-width:440px; }
+  .m { height:58px; border-radius:16px; border:3px solid var(--tinta); background:var(--crema); font:inherit; font-size:24px; font-weight:900;
+    color:var(--tinta); cursor:pointer; box-shadow:0 4px 0 var(--tinta); touch-action:none; padding:0; }
+  .m:active, .m.on { transform:translateY(3px); box-shadow:0 1px 0 var(--tinta); background:#ffe08a; }
+  .m small { display:block; font-size:9px; font-weight:800; letter-spacing:.5px; margin-top:-2px; text-transform:uppercase; }
+  button:focus-visible { outline:4px solid var(--azul); outline-offset:2px; }
+
+  .capa { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; z-index:5; background:rgba(20,16,46,.45); }
+  .tarjeta { width:min(380px, 100%); max-height:100%; overflow:auto; background:var(--crema); border:4px solid var(--tinta); border-radius:26px;
+    padding:18px 20px; text-align:center; box-shadow:0 8px 0 rgba(20,16,46,.35); }
+  .tarjeta img { width:132px; height:132px; border-radius:24px; border:4px solid var(--tinta); display:block; margin:0 auto 10px; }
+  h1 { margin:0; font-size:44px; font-weight:900; color:var(--azul); line-height:1; }
+  h2 { margin:0 0 6px; font-size:32px; font-weight:900; color:var(--azul); }
+  .sub { margin:6px 0 12px; font-weight:800; font-size:15px; }
+  .como { margin:0 0 14px; font-size:13px; font-weight:700; line-height:1.5; text-align:left; background:#fff; border:2px solid var(--tinta); border-radius:14px; padding:8px 12px; }
+  .btn { display:block; width:100%; padding:13px; border-radius:18px; border:4px solid var(--tinta); background:#ff3b5c; color:#fff;
+    font:inherit; font-size:22px; font-weight:900; cursor:pointer; box-shadow:0 5px 0 var(--tinta); }
+  .btn:active { transform:translateY(4px); box-shadow:0 1px 0 var(--tinta); }
+  .btn.sec { background:#fff; color:var(--tinta); font-size:16px; padding:9px; margin-top:12px; box-shadow:0 4px 0 var(--tinta); }
+  .grande { font-size:54px; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; }
+  .peq { font-size:14px; font-weight:800; margin:4px 0 14px; min-height:1em; }
+  .peq.nuevo { color:#d6336c; }
+  .creditos { margin:12px 0 0; font-size:13px; font-weight:800; }
+  .creditos a { color:var(--azul); font-weight:900; }
+  @media (max-height: 560px) { .tarjeta img { width:72px; height:72px; } h1 { font-size:32px; } .como { display:none; } }
+  @media (hover:hover) and (pointer:fine) and (min-width: 760px) { #mandos { max-width:380px; } .m { height:46px; font-size:20px; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="par izq"><button id="pausa" class="red" type="button" aria-label="Pausa">⏸</button></div>
+    <div class="titulo">Gusapila</div>
+    <div class="par"><button id="musica" class="red" type="button" aria-label="Quitar música">🎵</button><button id="mute" class="red" type="button" aria-label="Silenciar">🔊</button></div>
+  </header>
+  <div id="zona"><canvas id="c" aria-label="Tablero de Gusapila"></canvas></div>
+  <div id="mandos">
+    <button class="m" type="button" data-a="izq" aria-label="Mover a la izquierda">◀</button>
+    <button class="m" type="button" data-a="der" aria-label="Mover a la derecha">▶</button>
+    <button class="m" type="button" data-a="gira" aria-label="Girar">⟳</button>
+    <button class="m" type="button" data-a="baja" aria-label="Bajar">▼</button>
+    <button class="m" type="button" data-a="cae" aria-label="Soltar de golpe">⤓<small>caer</small></button>
+  </div>
+</div>
+
+<div id="inicio" class="capa">
+  <div class="tarjeta">
+    <img src="data:image/webp;base64,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" alt="Logo de Garder3D: un gusanito arcoíris con una estrella">
+    <h1>Gusapila</h1>
+    <p class="sub">Apila gusanitos y completa filas</p>
+    <div class="como">
+      <b>Móvil:</b> arrastra para mover, toca para girar, desliza hacia abajo para soltar. Toca «Guardado» para reservar un gusanito.<br>
+      <b>Teclado:</b> ← → mover · ↑ girar · ↓ bajar · Espacio soltar · C guardar · P pausa
+    </div>
+    <button id="jugar" class="btn" type="button">¡Jugar!</button>
+    <div id="recordInicio" class="peq" style="margin:10px 0 0"></div>
+    <p class="creditos">Hecho por <a href="https://www.instagram.com/garder3d/" target="_blank" rel="noopener">@garder3d</a></p>
+  </div>
+</div>
+
+<div id="pausado" class="capa" hidden>
+  <div class="tarjeta">
+    <h2>Pausa</h2>
+    <button id="seguir" class="btn" type="button">Seguir</button>
+    <button id="reiniciar" class="btn sec" type="button">Empezar de nuevo</button>
+  </div>
+</div>
+
+<div id="fin" class="capa" hidden>
+  <div class="tarjeta">
+    <h2>¡Se acabó!</h2>
+    <div id="finPuntos" class="grande">0</div>
+    <div id="finRecord" class="peq">Mejor: 0</div>
+    <button id="otra" class="btn" type="button">Otra vez</button>
+    <p class="creditos">Hecho por <a href="https://www.instagram.com/garder3d/" target="_blank" rel="noopener">@garder3d</a></p>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+// ====================== AJUSTES ======================
+const COLS = 10, FILAS = 20;
+const ARCO = ['#ff3b5c', '#ff9a1f', '#ffd91a', '#3ecf4a', '#2f9bff', '#a24bdb'];   // colores del gusanito
+const PUNTOS_LINEAS = [0, 100, 300, 500, 800];
+const LINEAS_POR_NIVEL = 10;
+const CLAVE_RECORD = 'gusapila_record', CLAVE_MUTE = 'gusapila_mute', CLAVE_MUSICA = 'gusapila_musica';
+const R = 1, D = 2, L = 4, U = 8;                    // enlaces entre trozos del mismo gusano
+const DIR = [[1, 0], [0, 1], [-1, 0], [0, -1]];      // derecha, abajo, izquierda, arriba
+
+// Cada gusano: tamaño de su caja, casillas en orden cabeza → cola y color inicial del arcoíris.
+// "extra" es una casilla que cuelga de otra (la joroba del gusano en T).
+const FORMAS = {
+  I: { n: 4, c: [[0, 1], [1, 1], [2, 1], [3, 1]], k: 0 },
+  O: { n: 2, c: [[0, 0], [1, 0], [1, 1], [0, 1]], k: 1 },
+  T: { n: 3, c: [[0, 1], [1, 1], [2, 1]], extra: [[1, 0], 1], k: 2 },
+  S: { n: 3, c: [[2, 0], [1, 0], [1, 1], [0, 1]], k: 3 },
+  Z: { n: 3, c: [[0, 0], [1, 0], [1, 1], [2, 1]], k: 4 },
+  J: { n: 3, c: [[0, 0], [0, 1], [1, 1], [2, 1]], k: 5 },
+  L: { n: 3, c: [[2, 0], [2, 1], [1, 1], [0, 1]], k: 0, inv: true },
+};
+const TIPOS = Object.keys(FORMAS);
+
+function dirEntre(a, b) { return DIR.findIndex((d) => a[0] + d[0] === b[0] && a[1] + d[1] === b[1]); }
+// Casillas de un gusano en la rotación 0, con enlaces, color y hacia dónde mira la cabeza
+const BASE = {};
+for (const t of TIPOS) {
+  const f = FORMAS[t];
+  const cs = f.c.map(([x, y], i) => ({ x, y, k: ((f.inv ? f.k - i : f.k + i) % 6 + 6) % 6, l: 0, h: -1 }));
+  for (let i = 0; i < cs.length - 1; i++) {
+    const d = dirEntre(f.c[i], f.c[i + 1]);
+    cs[i].l |= 1 << d; cs[i + 1].l |= 1 << ((d + 2) % 4);
+  }
+  cs[0].h = (dirEntre(f.c[0], f.c[1]) + 2) % 4;
+  if (f.extra) {
+    const [[x, y], padre] = f.extra;
+    const e = { x, y, k: (f.k + 3) % 6, l: 0, h: -1 };
+    const d = dirEntre([x, y], f.c[padre]);
+    e.l |= 1 << d; cs[padre].l |= 1 << ((d + 2) % 4);
+    cs.push(e);
+  }
+  BASE[t] = cs;
+}
+const rotBits = (l) => ((l << 1) | (l >> 3)) & 15;
+function casillas(tipo, rot) {
+  const n = FORMAS[tipo].n;
+  let cs = BASE[tipo];
+  for (let r = 0; r < rot; r++) cs = cs.map((c) => ({ x: n - 1 - c.y, y: c.x, k: c.k, l: rotBits(c.l), h: c.h < 0 ? -1 : (c.h + 1) % 4 }));
+  return cs;
+}
+
+// ====================== ESTADO ======================
+const $ = (id) => document.getElementById(id);
+const lienzo = $('c'), ctx = lienzo.getContext('2d');
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } },
+};
+let tablero, pieza, bolsa, cola, guardada, puedeGuardar, sigId;
+let puntos, lineas, nivel, record = parseInt(store.get(CLAVE_RECORD, '0'), 10) || 0;
+let fase = 'inicio';                 // inicio | juego | borrando | pausa | fin
+let tCaida = 0, tBloqueo = 0, tBorrado = 0, filasLlenas = [], aviso = null;
+let estrellas = [], sacudida = 0;
+let celda = 24, LAT = 0, ANCHO = 0, ALTO = 0;      // medidas en píxeles CSS
+
+function nuevaBolsa() {
+  const b = TIPOS.slice();
+  for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
+  return b;
+}
+function sacar() { if (!bolsa.length) bolsa = nuevaBolsa(); return bolsa.pop(); }
+function intervalo() { return Math.max(0.07, 0.8 - (nivel - 1) * 0.07); }
+
+function choca(tipo, rot, px, py) {
+  for (const c of casillas(tipo, rot)) {
+    const x = px + c.x, y = py + c.y;
+    if (x < 0 || x >= COLS || y >= FILAS) return true;
+    if (y >= 0 && tablero[y][x]) return true;
+  }
+  return false;
+}
+function aparecer(tipo) {
+  const n = FORMAS[tipo].n;
+  pieza = { tipo, rot: 0, x: Math.floor((COLS - n) / 2), y: tipo === 'I' ? -1 : 0, id: sigId++ };
+  tCaida = 0; tBloqueo = 0;
+  if (choca(pieza.tipo, pieza.rot, pieza.x, pieza.y)) { pieza = null; terminar(); }
+}
+function siguiente() { const t = cola.shift(); cola.push(sacar()); puedeGuardar = true; aparecer(t); }
+
+function empezar() {
+  iniciarAudio(); sonido.clic();
+  tablero = Array.from({ length: FILAS }, () => Array(COLS).fill(null));
+  pasoMus = 0; sonando = false;
+  bolsa = []; cola = [sacar(), sacar(), sacar()]; guardada = null; sigId = 1;
+  puntos = 0; lineas = 0; nivel = 1; estrellas = []; aviso = null; filasLlenas = [];
+  fase = 'juego';
+  $('inicio').hidden = true; $('fin').hidden = true; $('pausado').hidden = true;
+  siguiente();
+}
+function terminar() {
+  fase = 'fin'; sonido.fin();
+  const nuevo = puntos > record;
+  if (nuevo) { record = puntos; store.set(CLAVE_RECORD, String(record)); }
+  $('finPuntos').textContent = puntos;
+  $('finRecord').textContent = nuevo ? '¡Nuevo récord!' : 'Mejor: ' + record;
+  $('finRecord').classList.toggle('nuevo', nuevo);
+  setTimeout(() => { if (fase === 'fin') $('fin').hidden = false; }, 700);
+}
+function pausar(si) {
+  if (si && fase === 'juego') { fase = 'pausa'; $('pausado').hidden = false; }
+  else if (!si && fase === 'pausa') { fase = 'juego'; $('pausado').hidden = true; ultimo = performance.now(); }
+}
+
+// ---------- movimientos ----------
+function mover(dx) {
+  if (fase !== 'juego' || !pieza) return false;
+  if (choca(pieza.tipo, pieza.rot, pieza.x + dx, pieza.y)) return false;
+  pieza.x += dx; tBloqueo = 0; sonido.mueve(); return true;
+}
+function girar(sentido = 1) {
+  if (fase !== 'juego' || !pieza) return;
+  const rot = (pieza.rot + sentido + 4) % 4;
+  for (const [dx, dy] of [[0, 0], [-1, 0], [1, 0], [0, -1], [-2, 0], [2, 0], [-1, -1], [1, -1]]) {
+    if (!choca(pieza.tipo, rot, pieza.x + dx, pieza.y + dy)) {
+      pieza.rot = rot; pieza.x += dx; pieza.y += dy; tBloqueo = 0; sonido.gira(); return;
+    }
+  }
+}
+function bajar(manual) {
+  if (fase !== 'juego' || !pieza) return false;
+  if (choca(pieza.tipo, pieza.rot, pieza.x, pieza.y + 1)) return false;
+  pieza.y++; tCaida = 0; if (manual) puntos += 1; return true;
+}
+function caer() {
+  if (fase !== 'juego' || !pieza) return;
+  let n = 0; while (!choca(pieza.tipo, pieza.rot, pieza.x, pieza.y + 1)) { pieza.y++; n++; }
+  puntos += n * 2; sacudida = 0.12; fijar();
+}
+function guardar() {
+  if (fase !== 'juego' || !pieza || !puedeGuardar) return;
+  const t = pieza.tipo; sonido.gira();
+  if (guardada) { const g = guardada; guardada = t; aparecer(g); } else { guardada = t; siguiente(); }
+  puedeGuardar = false;
+}
+function yFantasma() { let y = pieza.y; while (!choca(pieza.tipo, pieza.rot, pieza.x, y + 1)) y++; return y; }
+
+function fijar() {
+  let fuera = false;
+  for (const c of casillas(pieza.tipo, pieza.rot)) {
+    const x = pieza.x + c.x, y = pieza.y + c.y;
+    if (y < 0) { fuera = true; continue; }
+    tablero[y][x] = { k: c.k, l: c.l, h: c.h, id: pieza.id };
+  }
+  pieza = null; sonido.fija();
+  if (fuera) { terminar(); return; }
+  filasLlenas = [];
+  for (let y = 0; y < FILAS; y++) if (tablero[y].every(Boolean)) filasLlenas.push(y);
+  if (filasLlenas.length) {
+    fase = 'borrando'; tBorrado = 0;
+    const n = filasLlenas.length;
+    puntos += PUNTOS_LINEAS[n] * nivel;
+    if (n === 4) { aviso = { txt: '¡GUSANAZO!', t: 0 }; sonido.gusanazo(); } else { sonido.linea(n); }
+    for (const y of filasLlenas) for (let x = 0; x < COLS; x++) if (Math.random() < 0.6) estrella(x + 0.5, y + 0.5, tablero[y][x].k);
+    try { if (navigator.vibrate) navigator.vibrate(n === 4 ? [40, 30, 80] : 25); } catch (e) { /* sin vibración */ }
+  } else siguiente();
+}
+function borrarFilas() {
+  // los gusanos cortados pierden el enlace con el trozo que desaparece
+  for (const y of filasLlenas) {
+    if (y > 0) for (const c of tablero[y - 1]) if (c) c.l &= ~D;
+    if (y < FILAS - 1) for (const c of tablero[y + 1]) if (c) c.l &= ~U;
+  }
+  for (const y of filasLlenas) { tablero.splice(y, 1); tablero.unshift(Array(COLS).fill(null)); }
+  const antes = nivel;
+  lineas += filasLlenas.length; nivel = 1 + Math.floor(lineas / LINEAS_POR_NIVEL);
+  if (nivel > antes) { aviso = aviso || { txt: 'Nivel ' + nivel, t: 0 }; sonido.nivel(); }
+  filasLlenas = []; fase = 'juego'; siguiente();
+}
+function estrella(x, y, k) {
+  estrellas.push({ x, y, vx: (Math.random() - 0.5) * 7, vy: -2 - Math.random() * 6, g: Math.random() * 6, vg: (Math.random() - 0.5) * 10, v: 1, k, s: 0.25 + Math.random() * 0.25 });
+}
+
+// ====================== DIBUJO ======================
+function rr(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+// silueta de un trozo de gusano: redondeado, con puentes hacia los trozos enlazados
+function trazo(x, y, c, l, crece) {
+  const m = c * 0.13 - crece, a = c - 2 * m;
+  ctx.beginPath();
+  rr(x + m, y + m, a, a, a * 0.46);
+  if (l & R) ctx.rect(x + c / 2, y + m, c / 2 + 0.6, a);
+  if (l & L) ctx.rect(x - 0.6, y + m, c / 2 + 0.6, a);
+  if (l & D) ctx.rect(x + m, y + c / 2, a, c / 2 + 0.6);
+  if (l & U) ctx.rect(x + m, y - 0.6, a, c / 2 + 0.6);
+}
+function dibujaTrozo(x, y, c, t, alfa = 1) {
+  ctx.globalAlpha = alfa;
+  ctx.fillStyle = ARCO[t.k]; trazo(x, y, c, t.l, 0); ctx.fill();
+  // anillos entre trozos
+  ctx.fillStyle = 'rgba(20,16,46,.28)'; const g = Math.max(1, c * 0.05), m = c * 0.13;
+  if (t.l & R) ctx.fillRect(x + c - g / 2, y + m, g, c - 2 * m);
+  if (t.l & D) ctx.fillRect(x + m, y + c - g / 2, c - 2 * m, g);
+  // brillo
+  ctx.fillStyle = 'rgba(255,255,255,.42)'; ctx.beginPath(); rr(x + c * 0.26, y + c * 0.2, c * 0.3, c * 0.11, c * 0.06); ctx.fill();
+  if (t.h >= 0) carita(x, y, c, t.h);
+  ctx.globalAlpha = 1;
+}
+function carita(x, y, c, h) {
+  const [dx, dy] = DIR[h], px = -dy, py = dx;          // hacia delante y hacia un lado
+  const cx = x + c / 2, cy = y + c / 2;
+  // antenas
+  ctx.strokeStyle = '#14102e'; ctx.fillStyle = '#14102e'; ctx.lineWidth = Math.max(1.2, c * 0.06); ctx.lineCap = 'round';
+  for (const s of [-1, 1]) {
+    const ax = cx + dx * c * 0.3 + px * s * c * 0.14, ay = cy + dy * c * 0.3 + py * s * c * 0.14;
+    const bx = cx + dx * c * 0.47 + px * s * c * 0.24, by = cy + dy * c * 0.47 + py * s * c * 0.24;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.beginPath(); ctx.arc(bx, by, c * 0.055, 0, 7); ctx.fill();
+  }
+  // ojo
+  const ex = cx + dx * c * 0.06, ey = cy + dy * c * 0.06 - (dy === 0 ? c * 0.05 : 0);
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, ey, c * 0.17, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#14102e'; ctx.lineWidth = Math.max(1, c * 0.045); ctx.stroke();
+  ctx.fillStyle = '#14102e'; ctx.beginPath(); ctx.arc(ex + dx * c * 0.05, ey + dy * c * 0.05, c * 0.085, 0, 7); ctx.fill();
+}
+// dibuja un grupo de trozos: primero el contorno negro de todos, luego los colores
+function dibujaGrupo(lista, c, alfa = 1) {
+  ctx.globalAlpha = alfa; ctx.fillStyle = '#14102e';
+  for (const t of lista) { trazo(t.px, t.py, c, t.l, c * 0.075); ctx.fill(); }
+  for (const t of lista) dibujaTrozo(t.px, t.py, c, t, alfa);
+}
+function dibujaMini(tipo, cx, cy, c, alfa = 1) {
+  const cs = casillas(tipo, 0);
+  const xs = cs.map((q) => q.x), ys = cs.map((q) => q.y);
+  const w = Math.max(...xs) - Math.min(...xs) + 1, h = Math.max(...ys) - Math.min(...ys) + 1;
+  const ox = cx - (w * c) / 2 - Math.min(...xs) * c, oy = cy - (h * c) / 2 - Math.min(...ys) * c;
+  dibujaGrupo(cs.map((q) => ({ ...q, px: ox + q.x * c, py: oy + q.y * c })), c, alfa);
+}
+function dibujaEstrella(x, y, r, giro, color, borde) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = giro + (i * Math.PI) / 5 - Math.PI / 2, q = i % 2 ? r * 0.45 : r;
+    ctx[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * q, y + Math.sin(a) * q);
+  }
+  ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+  if (borde) { ctx.strokeStyle = '#14102e'; ctx.lineWidth = Math.max(1.5, r * 0.16); ctx.lineJoin = 'round'; ctx.stroke(); }
+}
+function texto(t, x, y, tam, color = '#fff', alin = 'center') {
+  ctx.font = `900 ${tam}px ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = alin; ctx.textBaseline = 'middle'; ctx.fillStyle = color; ctx.fillText(t, x, y);
+}
+const zonaGuardado = { x: 0, y: 0, w: 0, h: 0 };
+
+function pintar() {
+  const c = celda, W = COLS * c, H = FILAS * c;
+  ctx.setTransform(ppp, 0, 0, ppp, 0, 0);
+  ctx.clearRect(0, 0, ANCHO, ALTO);
+  const sx = sacudida > 0 ? (Math.random() - 0.5) * 4 : 0, sy = sacudida > 0 ? Math.random() * 4 : 0;
+  ctx.save(); ctx.translate(sx, sy);
+
+  // tablero
+  ctx.fillStyle = '#1b1640'; ctx.beginPath(); rr(0, 0, W, H, 10); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 1; ctx.beginPath();
+  for (let x = 1; x < COLS; x++) { ctx.moveTo(x * c + 0.5, 0); ctx.lineTo(x * c + 0.5, H); }
+  for (let y = 1; y < FILAS; y++) { ctx.moveTo(0, y * c + 0.5); ctx.lineTo(W, y * c + 0.5); }
+  ctx.stroke();
+
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  if (tablero) {
+    const fijos = [];
+    for (let y = 0; y < FILAS; y++) for (let x = 0; x < COLS; x++) { const t = tablero[y][x]; if (t) fijos.push({ ...t, px: x * c, py: y * c }); }
+    dibujaGrupo(fijos, c);
+    if (fase === 'borrando') {
+      ctx.fillStyle = `rgba(255,255,255,${0.85 * (1 - tBorrado / 0.24)})`;
+      for (const y of filasLlenas) ctx.fillRect(0, y * c, W, c);
+    }
+  }
+  if (pieza && (fase === 'juego' || fase === 'pausa')) {
+    const cs = casillas(pieza.tipo, pieza.rot), yf = yFantasma();
+    if (yf > pieza.y) {
+      ctx.globalAlpha = 0.22; ctx.fillStyle = '#fff';
+      for (const q of cs) { trazo((pieza.x + q.x) * c, (yf + q.y) * c, c, q.l, 0); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+    dibujaGrupo(cs.map((q) => ({ ...q, px: (pieza.x + q.x) * c, py: (pieza.y + q.y) * c })), c);
+  }
+  for (const e of estrellas) { ctx.globalAlpha = Math.min(1, e.v * 1.5); dibujaEstrella(e.x * c, e.y * c, e.s * c, e.g, '#fff', true); }
+  ctx.globalAlpha = 1;
+  if (aviso) {
+    const k = Math.min(1, aviso.t / 0.15), a = aviso.t > 0.9 ? Math.max(0, 1 - (aviso.t - 0.9) / 0.3) : 1;
+    ctx.globalAlpha = a; ctx.save(); ctx.translate(W / 2, H * 0.36); ctx.scale(0.6 + 0.4 * k, 0.6 + 0.4 * k); ctx.rotate(-0.06);
+    const tam = Math.min(c * 1.6, W / (aviso.txt.length * 0.78));
+    ctx.font = `900 ${tam}px ui-rounded, "Segoe UI", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = tam * 0.22; ctx.strokeStyle = '#fff'; ctx.lineJoin = 'round'; ctx.strokeText(aviso.txt, 0, 0);
+    ctx.fillStyle = '#2a1fd6'; ctx.fillText(aviso.txt, 0, 0); ctx.restore(); ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  ctx.strokeStyle = '#14102e'; ctx.lineWidth = 3; ctx.beginPath(); rr(1.5, 1.5, W - 3, H - 3, 10); ctx.stroke();
+  ctx.restore();
+
+  // lateral
+  const lx = W + c * 0.4, lw = LAT - c * 0.4, mc = Math.min(c * 0.72, lw / 4.6);
+  const caja = (y, h, titulo) => {
+    ctx.fillStyle = 'rgba(255,248,234,.92)'; ctx.beginPath(); rr(lx, y, lw, h, 12); ctx.fill();
+    ctx.strokeStyle = '#14102e'; ctx.lineWidth = 3; ctx.stroke();
+    texto(titulo, lx + lw / 2, y + c * 0.5, Math.max(9, c * 0.4), '#14102e');
+  };
+  const hSig = c * 0.8 + mc * 2.6 * 3;
+  caja(0, hSig, 'SIGUIENTE');
+  if (cola) cola.forEach((t, i) => dibujaMini(t, lx + lw / 2, c * 0.9 + mc * 2.6 * (i + 0.5), mc));
+  const yG = hSig + c * 0.4, hG = c * 0.8 + mc * 2.8;
+  caja(yG, hG, 'GUARDADO');
+  Object.assign(zonaGuardado, { x: lx, y: yG, w: lw, h: hG });
+  if (guardada) dibujaMini(guardada, lx + lw / 2, yG + c * 0.75 + mc * 1.3, mc, puedeGuardar ? 1 : 0.4);
+  else texto('toca', lx + lw / 2, yG + c * 0.75 + mc * 1.3, Math.max(9, c * 0.38), 'rgba(20,16,46,.4)');
+  const yD = yG + hG + c * 0.4, hD = H - yD;
+  if (hD > c * 3) {
+    ctx.fillStyle = 'rgba(255,248,234,.92)'; ctx.beginPath(); rr(lx, yD, lw, hD, 12); ctx.fill(); ctx.strokeStyle = '#14102e'; ctx.lineWidth = 3; ctx.stroke();
+    const filas = [['PUNTOS', puntos || 0], ['LÍNEAS', lineas || 0], ['NIVEL', nivel || 1], ['MEJOR', Math.max(record, puntos || 0)]];
+    const paso = hD / filas.length;
+    filas.forEach(([n, v], i) => {
+      texto(n, lx + lw / 2, yD + paso * i + paso * 0.3, Math.max(8, Math.min(c * 0.36, paso * 0.24)), 'rgba(20,16,46,.6)');
+      texto(String(v), lx + lw / 2, yD + paso * i + paso * 0.66, Math.max(11, Math.min(c * 0.62, paso * 0.4, lw / (String(v).length * 0.62))), '#2a1fd6');
+    });
+  }
+}
+
+// ====================== TAMAÑO ======================
+let ppp = 1;
+function ajustar() {
+  const z = $('zona').getBoundingClientRect();
+  ppp = Math.min(window.devicePixelRatio || 1, 2.5);
+  celda = Math.max(10, Math.floor(Math.min((z.width - 4) / (COLS + 4.6), (z.height - 4) / FILAS)));
+  LAT = Math.floor(celda * 4.6); ANCHO = COLS * celda + LAT; ALTO = FILAS * celda;
+  lienzo.style.width = ANCHO + 'px'; lienzo.style.height = ALTO + 'px';
+  lienzo.width = Math.round(ANCHO * ppp); lienzo.height = Math.round(ALTO * ppp);
+  pintar();
+}
+window.addEventListener('resize', ajustar);
+
+// ====================== AUDIO ======================
+let actx = null, master = null, mute = store.get(CLAVE_MUTE, '0') === '1';
+function iniciarAudio() {
+  if (actx) { if (actx.state === 'suspended') actx.resume().catch(() => {}); return; }
+  try { const AC = window.AudioContext || window.webkitAudioContext; actx = new AC(); master = actx.createGain(); master.gain.value = mute ? 0 : 0.5; master.connect(actx.destination); } catch (e) { actx = null; }
+}
+function tono(f1, f2, dur, vol = 0.15, tipo = 'triangle', cuando = 0) {
+  if (!actx) return;
+  const t = actx.currentTime + cuando, o = actx.createOscillator(), g = actx.createGain();
+  o.type = tipo; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.03);
+}
+const sonido = {
+  clic() { tono(520, 780, 0.09, 0.14); },
+  mueve() { tono(330, 300, 0.04, 0.05, 'sine'); },
+  gira() { tono(440, 620, 0.07, 0.08); },
+  fija() { tono(160, 70, 0.1, 0.18, 'sine'); },
+  linea(n) { for (let i = 0; i < n + 1; i++) tono(523 * Math.pow(1.26, i), 523 * Math.pow(1.26, i), 0.12, 0.13, 'triangle', i * 0.07); },
+  gusanazo() { [523, 659, 784, 1047, 1319].forEach((f, i) => tono(f, f, 0.16, 0.15, 'square', i * 0.08)); },
+  nivel() { tono(660, 1320, 0.25, 0.1, 'sine', 0.25); },
+  fin() { [392, 330, 262, 196].forEach((f, i) => tono(f, f * 0.97, 0.22, 0.15, 'triangle', i * 0.16)); },
+};
+// ---------- música: melodía propia estilo chiptune, en la menor ----------
+const NOTA = { R: 0 };
+['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].forEach((n, i) => { for (let o = 2; o <= 6; o++) NOTA[n + o] = 440 * Math.pow(2, (i - 9) / 12 + (o - 4)); });
+// cada compás: 8 corcheas. [nota, duración en corcheas]
+const MELODIA = [
+  [['A4', 2], ['C5', 1], ['E5', 1], ['D5', 2], ['C5', 1], ['B4', 1]],
+  [['B4', 2], ['G#4', 1], ['B4', 1], ['E5', 2], ['D5', 1], ['B4', 1]],
+  [['C5', 2], ['A4', 1], ['C5', 1], ['E5', 2], ['A5', 2]],
+  [['G5', 2], ['E5', 1], ['D5', 1], ['B4', 2], ['D5', 2]],
+  [['C5', 2], ['A4', 1], ['F4', 1], ['A4', 2], ['C5', 2]],
+  [['D5', 2], ['F5', 1], ['E5', 1], ['D5', 2], ['C5', 1], ['B4', 1]],
+  [['B4', 1], ['C5', 1], ['D5', 1], ['E5', 1], ['G#4', 2], ['B4', 2]],
+  [['A4', 4], ['R', 2], ['E4', 2]],
+  [['E5', 4], ['C5', 2], ['G4', 2]],
+  [['D5', 4], ['B4', 2], ['G4', 2]],
+  [['C5', 4], ['A4', 2], ['E4', 2]],
+  [['B4', 3], ['C5', 1], ['B4', 2], ['G#4', 2]],
+  [['A4', 2], ['C5', 2], ['F5', 2], ['E5', 1], ['D5', 1]],
+  [['E5', 2], ['G5', 2], ['E5', 2], ['C5', 2]],
+  [['D5', 2], ['F5', 1], ['D5', 1], ['E5', 2], ['B4', 2]],
+  [['A4', 6], ['R', 2]],
+];
+const BAJO = [['A2', 'E3'], ['E2', 'B2'], ['A2', 'E3'], ['G2', 'D3'], ['F2', 'C3'], ['D2', 'A2'], ['E2', 'B2'], ['A2', 'E3'],
+  ['C3', 'G2'], ['G2', 'D3'], ['A2', 'E3'], ['E2', 'B2'], ['F2', 'C3'], ['C3', 'G2'], ['E2', 'B2'], ['A2', 'E3']];
+const PASOS = [];                                   // una entrada por corchea
+MELODIA.forEach((compas, i) => {
+  let p = 0;
+  for (const [n, d] of compas) { PASOS[i * 8 + p] = { f: NOTA[n], d }; p += d; }
+  if (p !== 8) throw new Error('compás ' + i + ' mal medido');
+});
+let musicaOn = store.get(CLAVE_MUSICA, '1') === '1', gMusica = null, pasoMus = 0, tMus = 0, sonando = false;
+function nota(f, t, dur, vol, tipo) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = tipo; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(vol * 0.55, t + dur * 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(gMusica); o.start(t); o.stop(t + dur + 0.03);
+}
+function programarMusica() {
+  const debe = musicaOn && actx && (fase === 'juego' || fase === 'borrando');
+  if (!debe) { sonando = false; return; }
+  if (!gMusica) { gMusica = actx.createGain(); gMusica.gain.value = 0.55; gMusica.connect(master); }
+  if (!sonando || tMus < actx.currentTime - 0.3) { sonando = true; tMus = actx.currentTime + 0.08; }
+  const corchea = 60 / Math.min(196, 132 + (nivel - 1) * 7) / 2;
+  while (tMus < actx.currentTime + 0.2) {
+    const i = pasoMus % PASOS.length, p = PASOS[i], compas = Math.floor(i / 8), k = i % 8;
+    if (p && p.f) nota(p.f, tMus, p.d * corchea * 0.95, 0.07, 'square');
+    if (k % 2 === 0) nota(NOTA[BAJO[compas][(k / 2) % 2]], tMus, corchea * 1.7, 0.16, 'triangle');
+    if (k % 2 === 1) nota(NOTA[BAJO[compas][0]] * 4, tMus, corchea * 0.5, 0.025, 'triangle');
+    tMus += corchea; pasoMus++;
+  }
+}
+setInterval(programarMusica, 40);
+function ponerMusica(v) {
+  musicaOn = v; store.set(CLAVE_MUSICA, v ? '1' : '0');
+  $('musica').style.opacity = v ? '1' : '.45'; $('musica').setAttribute('aria-label', v ? 'Quitar música' : 'Poner música');
+  $('musica').setAttribute('aria-pressed', v ? 'true' : 'false');
+}
+function ponerMute(v) {
+  mute = v; store.set(CLAVE_MUTE, v ? '1' : '0'); if (master) master.gain.value = v ? 0 : 0.5;
+  $('mute').textContent = v ? '🔇' : '🔊'; $('mute').setAttribute('aria-label', v ? 'Activar sonido' : 'Silenciar');
+}
+
+// ====================== ENTRADA ======================
+const acciones = { izq: () => mover(-1), der: () => mover(1), gira: () => girar(1), baja: () => { if (bajar(true)) sonido.mueve(); }, cae: caer };
+const repetibles = new Set(['izq', 'der', 'baja']);
+const repes = new Map();
+function pulsar(a) {
+  iniciarAudio(); acciones[a]();
+  if (repetibles.has(a) && !repes.has(a)) {
+    const r = { espera: setTimeout(() => { r.iv = setInterval(acciones[a], a === 'baja' ? 40 : 55); }, 170), iv: null };
+    repes.set(a, r);
+  }
+}
+function soltarTecla(a) { const r = repes.get(a); if (r) { clearTimeout(r.espera); clearInterval(r.iv); repes.delete(a); } }
+document.querySelectorAll('.m').forEach((b) => {
+  const a = b.dataset.a;
+  b.addEventListener('pointerdown', (e) => { e.preventDefault(); b.classList.add('on'); pulsar(a); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => { b.classList.remove('on'); soltarTecla(a); });
+  b.addEventListener('contextmenu', (e) => e.preventDefault());
+});
+const TECLAS = { ArrowLeft: 'izq', ArrowRight: 'der', ArrowDown: 'baja', ArrowUp: 'gira', x: 'gira', X: 'gira', ' ': 'cae' };
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { pausar(fase === 'juego'); return; }
+  if (e.key === 'Enter' && (fase === 'inicio' || (fase === 'fin' && !$('fin').hidden))) { empezar(); return; }
+  if (fase !== 'juego') return;
+  if (e.key === 'z' || e.key === 'Z') { if (!e.repeat) girar(-1); return; }
+  if (e.key === 'c' || e.key === 'C') { if (!e.repeat) guardar(); return; }
+  const a = TECLAS[e.key]; if (!a) return;
+  e.preventDefault(); if (e.repeat) return; pulsar(a);
+});
+window.addEventListener('keyup', (e) => { const a = TECLAS[e.key]; if (a) soltarTecla(a); });
+
+// gestos sobre el tablero: arrastrar = mover, tocar = girar, deslizar abajo = soltar
+let dedo = null;
+lienzo.addEventListener('pointerdown', (e) => {
+  iniciarAudio();
+  const r = lienzo.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  if (x >= zonaGuardado.x && y >= zonaGuardado.y && y <= zonaGuardado.y + zonaGuardado.h) { guardar(); return; }
+  if (fase !== 'juego' || x > COLS * celda) return;
+  e.preventDefault();
+  try { lienzo.setPointerCapture(e.pointerId); } catch (err) { /* da igual */ }
+  dedo = { x0: e.clientX, y0: e.clientY, ax: e.clientX, ay: e.clientY, t0: performance.now(), movido: false, ty: performance.now(), yUlt: e.clientY, vy: 0 };
+});
+lienzo.addEventListener('pointermove', (e) => {
+  if (!dedo || fase !== 'juego') return;
+  const paso = Math.max(18, celda * 0.9);
+  while (e.clientX - dedo.ax >= paso) { mover(1); dedo.ax += paso; dedo.movido = true; }
+  while (dedo.ax - e.clientX >= paso) { mover(-1); dedo.ax -= paso; dedo.movido = true; }
+  while (e.clientY - dedo.ay >= paso) { bajar(true); dedo.ay += paso; dedo.movido = true; }
+  const ahora = performance.now();
+  if (ahora - dedo.ty > 16) { dedo.vy = (e.clientY - dedo.yUlt) / (ahora - dedo.ty); dedo.ty = ahora; dedo.yUlt = e.clientY; }
+});
+function finDedo(e) {
+  if (!dedo) return;
+  const d = dedo; dedo = null;
+  if (fase !== 'juego' || e.type === 'pointercancel') return;
+  const dx = e.clientX - d.x0, dy = e.clientY - d.y0, dt = performance.now() - d.t0;
+  if (dy > celda * 2 && dy > Math.abs(dx) * 1.5 && (dt < 260 || d.vy > 1.1)) caer();
+  else if (!d.movido && Math.hypot(dx, dy) < 12 && dt < 350) girar(1);
+}
+lienzo.addEventListener('pointerup', finDedo);
+lienzo.addEventListener('pointercancel', finDedo);
+lienzo.addEventListener('contextmenu', (e) => e.preventDefault());
+
+$('jugar').addEventListener('click', empezar);
+$('otra').addEventListener('click', empezar);
+$('reiniciar').addEventListener('click', empezar);
+$('seguir').addEventListener('click', () => pausar(false));
+$('pausa').addEventListener('click', () => pausar(fase === 'juego'));
+$('mute').addEventListener('click', () => { iniciarAudio(); ponerMute(!mute); });
+$('musica').addEventListener('click', () => { iniciarAudio(); ponerMusica(!musicaOn); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pausar(true); });
+
+// ====================== BUCLE ======================
+let ultimo = performance.now();
+function paso(ahora) {
+  const dt = Math.min(0.1, (ahora - ultimo) / 1000); ultimo = ahora;
+  if (fase === 'juego' && pieza) {
+    tCaida += dt;
+    const enSuelo = choca(pieza.tipo, pieza.rot, pieza.x, pieza.y + 1);
+    if (enSuelo) { tBloqueo += dt; if (tBloqueo > 0.5) fijar(); }
+    else { const iv = intervalo(); while (tCaida >= iv && pieza && bajar(false)) tCaida -= iv; if (tCaida >= iv) tCaida = 0; }
+  } else if (fase === 'borrando') {
+    tBorrado += dt; if (tBorrado >= 0.24) borrarFilas();
+  }
+  if (fase !== 'pausa') {
+    for (const e of estrellas) { e.vy += 16 * dt; e.x += e.vx * dt; e.y += e.vy * dt; e.g += e.vg * dt; e.v -= dt * 1.1; }
+    estrellas = estrellas.filter((e) => e.v > 0);
+    if (aviso) { aviso.t += dt; if (aviso.t > 1.2) aviso = null; }
+    sacudida = Math.max(0, sacudida - dt);
+  }
+  pintar();
+  requestAnimationFrame(paso);
+}
+
+ponerMute(mute); ponerMusica(musicaOn);
+$('recordInicio').textContent = record > 0 ? 'Mejor puntuación: ' + record : '';
+// tablero de muestra detrás del menú
+tablero = Array.from({ length: FILAS }, () => Array(COLS).fill(null));
+puntos = 0; lineas = 0; nivel = 1; cola = ['S', 'I', 'O']; guardada = null;
+ajustar();
+window.__gusa = {
+  get fase() { return fase; }, get puntos() { return puntos; }, get lineas() { return lineas; }, get pasoMus() { return pasoMus; },
+  mover, girar, caer, guardar,
+  poner(tipo) { if (pieza) { pieza.tipo = tipo; pieza.rot = 0; } },
+  rellenar(n) { // deja n filas casi llenas (falta la última columna), para probar
+    for (let i = 0; i < n; i++) { const y = FILAS - 1 - i; for (let x = 0; x < COLS - 1; x++) tablero[y][x] = { k: (x + i) % 6, l: 0, h: -1, id: 900 + i * 10 + x }; }
+  },
+};
+requestAnimationFrame((t) => { ultimo = t; paso(t); });
+})();
+
+</script>
+</body>
+</html>
